@@ -1,0 +1,41 @@
+{
+   "abstract" : "Display possible merge conflicts between",
+   "author" : [
+      "Travis Holton <heytrav@cpan.org>"
+   ],
+   "dynamic_config" : 1,
+   "generated_by" : "Module::Build version 0.4, CPAN::Meta::Converter version 2.112150",
+   "license" : [
+      "perl_5"
+   ],
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+   },
+   "name" : "App-Git-CheckMergeConflicts",
+   "prereqs" : {
+      "configure" : {
+         "requires" : {
+            "Module::Build" : "0.4"
+         }
+      },
+      "runtime" : {
+         "requires" : {
+            "App::gh::Git" : 0
+         }
+      }
+   },
+   "provides" : {
+      "App::Git::CheckMergeConflicts" : {
+         "file" : "lib/App/Git/CheckMergeConflicts.pm",
+         "version" : "0.01"
+      }
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "license" : [
+         "http://dev.perl.org/licenses/"
+      ]
+   },
+   "version" : "0.01"
+}

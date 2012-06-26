@@ -1,0 +1,8 @@
+bin/git-check-merge-conflicts
+Build.PL
+lib/App/Git/CheckMergeConflicts.pm
+MANIFEST			This list of files
+META.json
+META.yml
+README.md
+t/git-installed.t

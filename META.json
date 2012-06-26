@@ -21,14 +21,18 @@
       },
       "runtime" : {
          "requires" : {
-            "App::gh::Git" : 0
+            "App::gh::Git" : 0,
+            "Getopt::Long" : 0,
+            "List::MoreUtils" : 0,
+            "Pod::Usage" : 0,
+            "YAML" : 0
          }
       }
    },
    "provides" : {
       "App::Git::CheckMergeConflicts" : {
          "file" : "lib/App/Git/CheckMergeConflicts.pm",
-         "version" : "0.01"
+         "version" : "0.02"
       }
    },
    "release_status" : "stable",
@@ -37,5 +41,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.01"
+   "version" : "0.02"
 }

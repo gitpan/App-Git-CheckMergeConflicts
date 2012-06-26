@@ -11,9 +11,14 @@ my $builder = Module::Build->new(
     recursive_test_files => 1,
     configure_requires   => {
         'Module::Build' => 0.4,
-        #'Devel::CheckLib' => 0
     },
-    requires       => { 'App::gh::Git' => 0 },
+    requires => {
+        'App::gh::Git'    => 0,
+        'Getopt::Long'    => 0,
+        'List::MoreUtils' => 0,
+        'Pod::Usage'      => 0,
+        'YAML'            => 0
+    },
     add_to_cleanup => ['App-Git-CheckMergeConflicts-*'],
 );
 

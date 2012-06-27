@@ -15,7 +15,7 @@ name: App-Git-CheckMergeConflicts
 provides:
   App::Git::CheckMergeConflicts:
     file: lib/App/Git/CheckMergeConflicts.pm
-    version: 0.02
+    version: 0.03
 requires:
   App::gh::Git: 0
   Getopt::Long: 0
@@ -24,4 +24,4 @@ requires:
   YAML: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.02
+version: 0.03

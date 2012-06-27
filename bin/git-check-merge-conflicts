@@ -5,18 +5,19 @@ use 5.010;
 use strict;
 use warnings;
 
+use App::Git::CheckMergeConflicts;
 use App::gh::Git;
 use Getopt::Long;
 use List::MoreUtils 'any';
 use Pod::Usage;
 
-use YAML;
+#use YAML;
 
-
-my ( $help, $verbose );
+my ( $help, $verbose,$quiet );
 my @options = qw{
   branch-as-prefix
   verbose+
+  quiet
 };
 
 # diff options
@@ -43,7 +44,6 @@ my @diff_options = qw{
   full-index
   W
   function-context
-  histogram
   w
   ignore-all-space
   ignore-space-at-eol
@@ -67,7 +67,6 @@ my @diff_options = qw{
   patients
   pickaxe-all
   pickaxe-regex
-  quiet
   raw
   relative=s
   shortstat
@@ -84,18 +83,32 @@ my @diff_options = qw{
   word-diff-regex=s
   z
 };
-my %command_line_options = ( help => \$help, verbose => \$verbose );
+my %command_line_options = (
+    help    => \$help,
+    quiet   => \$quiet,
+    verbose => \$verbose,
+);
 
 GetOptions( \%command_line_options, 'help', @options, @diff_options );
-foreach my $option ('branch-as-prefix',@diff_options) {
+foreach my $option ( 'branch-as-prefix', @diff_options ) {
     my ($opt) = $option =~ /\A([^=]+)/;
+
     #automatically make extra verbose if any git-diff options are given
-    $verbose = 2 if defined $command_line_options{$opt};
+    if (defined $command_line_options{$opt}) {
+        $quiet = 0 ;
+        $verbose++;
+    }
 }
 $help && usage();
 
-my $repository = App::gh::Git->repository();
-my $repo_path  = $repository->repo_path();
+my $repository;
+local $@;
+eval { $repository = App::gh::Git->repository(); };
+if ( my $e = $@ ) {
+    say $e;
+    usage();
+}
+my $repo_path = $repository->repo_path();
 
 my $current_branch = current_branch();
 my $local_branches = local_branches();
@@ -117,7 +130,7 @@ my $diff_option_set =
 
 working_dir_clean();
 
-my ($fatal,@errors);
+my ( $fatal, @errors );
 foreach my $branch (@merge_branches) {
     next if $branch and $branch eq $current_branch;
     my $merge_result = '';
@@ -128,10 +141,8 @@ foreach my $branch (@merge_branches) {
     if ( my $e = $@ ) {
         my $conflicted_files = find_conflicts();
         my $diffoutput;
-        eval {
-         $diffoutput = process_conflicts( $conflicted_files, $branch ) ;
-        };
-        if (my $diff_error = $@) {
+        eval { $diffoutput = process_conflicts( $conflicted_files, $branch ); };
+        if ( my $diff_error = $@ ) {
             say STDERR $diff_error;
         }
         push @errors,
@@ -151,9 +162,9 @@ foreach my $branch (@merge_branches) {
         # working directory for some weird reason.
         working_dir_clean();
     };
-    if (my $e = $@) {
+    if ( my $e = $@ ) {
         $fatal = "You might want to run\ngit"
-        ." clean -fx\nto clean up working directory.";
+          . " clean -fx\nto clean up working directory.";
         last;
     }
 }
@@ -163,8 +174,8 @@ if (@errors) {
     foreach my $error (@errors) {
         my ( $branch, $diffout, ) = @{$error}{qw/branch diffoutput/};
         print $branch;
-        if ($verbose and defined $diffout and $diffout !~ /\A \s* \z/xms) {
-            say ":\n" . $diffout ;
+        if ( (not $quiet) and defined $diffout and $diffout !~ /\A \s* \z/xms ) {
+            say ":\n" . $diffout;
         }
         print "\n";
         say STDERR $fatal if defined $fatal;
@@ -189,7 +200,7 @@ sub process_conflicts {
     foreach my $file ( @{$conflicted_files} ) {
         my @results;
         push @results, $file;
-        if (defined $verbose and  $verbose > 1 ) {
+        if ( not $quiet and defined $verbose and $verbose > 0 ) {
             my @options;
             push @options, @{$diff_option_set};
             push @options, join '=' => '--dst-prefix',
@@ -242,7 +253,7 @@ sub non_relevant_files {
 
 sub working_dir_clean {
     my $status = $repository->command('status');
-    my $msg ="Working directory has changes!";
+    my $msg    = "Working directory has changes!";
     die $msg unless $status =~ /working \s directory \s clean/x;
 }
 
@@ -256,8 +267,8 @@ sub process_command_options {
         if ( defined $value ) {
             my $joiner = ' ';
             my $minus  = '-';
-            if ( length $name > 1  ) {
-                $joiner = '=' ;
+            if ( length $name > 1 ) {
+                $joiner = '=';
                 $minus  = '--';
             }
             if ( $option =~ /=/ and $value !~ /\A [01] \z/x ) {
@@ -277,6 +288,7 @@ sub process_command_options {
 }
 
 sub usage {
+    say "App::Git::CheckMergeConflicts version: ".$App::Git::CheckMergeConflicts::VERSION;
     pod2usage(1);
 }
 
@@ -300,40 +312,46 @@ repository.
 
 This script finds potential merge conflicts between branches so that you don't
 have to find out when doing the actual merge. Conflicts are displayed using
-the output of the C<git diff> command.
+the output of the C<git-diff> command.
 
-Internally this runs C<git merge --no-commit branch> followed by a C<git merge
+Internally this runs C<git-merge --no-commit branch> followed by a C<git-merge
 --abort> for each of the branches given on the command line. If there are
-merge conflicts between any two branches, the respective C<git diff> outut can
+merge conflicts between any two branches, the respective C<git-diff> outut can
 be used to see the actual conflicts.
 
 
 =head1 OPTIONS
 
+=head3 -help, -h
+
+Output the current version number and this usage documentation.
+
+=head3 -quiet, -q
+
+Will just tell you if there were conflicts or not.
+
 =head3 -verbose, -v
 
-By default, C<git-check-merge-conflicts> only tells you which branches had
-conflicts. The C<-verbose|-v> option gives you slightly more verbose output
-that tells you which files had conflicts.
-
-You can add a second C<-verbose> or C<-v> to get the C<git-diff> output.
+By default C<git-check-merge-conflicts> only tells you which branches had
+conflicts and the names of the files in which they occur. The C<-verbose|-v>
+option gives you the C<git-diff> output. This is equivalent to using the
+parameter C<--word-diff=plain>.
 
 
 =head3 -branch-as-prefix
 
-This makes diff output use the branch name as the prefix in its output. By default
-C<git-diff> uses C<a> and C<b>. So instead of
+C<git-diff> uses C<a> and C<b> to designate the respective branches in its
+output by default. This option tells C<git-diff> to instead use the branch
+name as the prefix. So rather than:
 
-    a/path/file
-    b/path/file
+    a/path/file     b/path/file
 
 You'll get
 
-    branch1:path/file
-    branch2:path/file
+    branch1:path/file     branch2:path/file
 
 
-For all other options see the B<C<git diff>> documentation (in particular
+For all other options see the B<C<git-diff>> documentation (in particular
 for C<--word-diff>).
 
 
